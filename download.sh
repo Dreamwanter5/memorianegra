@@ -1,17 +1,21 @@
 #!/bin/bash
 
+# Pasta base onde todos os resultados serão armazenados
+PASTA_BASE="Registros"
+
 if [ $# -eq 0 ]; then
-    echo "Uso: $0 \"termo1 termo2\" \"termo3 termo4\" ..."
+    echo "Uso: $0 \"termo1\" \"termo2\" ..."
     echo "Exemplo: $0 \"preconceito racial\" \"arte negra\""
     exit 1
 fi
 
-# Função que executa uma busca para um conjunto de termos
+# Cria a pasta base se não existir
+mkdir -p "$PASTA_BASE"
+
 executar_busca() {
     local termos="$1"
-    # Cria uma slug a partir dos termos (ex: "preconceito_racial")
     local slug=$(echo "$termos" | tr ' ' '_' | sed 's/[^a-zA-Z0-9_]/_/g')
-    local pasta_base="${slug}_resultados"
+    local pasta_base="${PASTA_BASE}/${slug}_resultados"
     mkdir -p "$pasta_base"
 
     echo "=========================================="
@@ -19,15 +23,19 @@ executar_busca() {
     echo "Pasta: $pasta_base"
     echo "=========================================="
 
-    # Monta query
-    QUERY="find @and"
-    for term in $termos; do
-        term_upper=$(echo "$term" | tr '[:lower:]' '[:upper:]')
-        QUERY="$QUERY @attr 1=21 $term_upper"
-    done
+    # Busca no campo assunto (1=21) com palavras separadas
+    if [[ "$termos" =~ [[:space:]] ]]; then
+        # Termo composto: quebra em palavras e insere @and
+        QUERY="find @and"
+        for palavra in $termos; do
+            QUERY="$QUERY @attr 1=21 $palavra"
+        done
+    else
+        # Termo único
+        QUERY="find @attr 1=21 $termos"
+    fi
     echo "Query gerada: $QUERY"
 
-    # Obtém total de hits
     HITS=$(
         (
             echo "base USP01"
@@ -42,7 +50,6 @@ executar_busca() {
     fi
     echo "Total de registros encontrados: $HITS"
 
-    # Função que baixa todos os registros de uma vez (para XML)
     busca_tudo() {
         local FORMATO="$1"
         local OUT_RAW="$2"
@@ -59,7 +66,7 @@ executar_busca() {
         rm "$CMDS"
     }
 
-    # 1. XML
+    # XML
     RAW_XML=$(mktemp)
     busca_tudo "xml" "$RAW_XML"
     TEMP_XML_DIR=$(mktemp -d)
@@ -87,7 +94,7 @@ executar_busca() {
     done
     rm -rf "$TEMP_XML_DIR" "$RAW_XML"
 
-    # 2. Baixar outros formatos (um por vez)
+    # Outros formatos
     baixa_registro() {
         local FORMATO="$1"
         local NUMERO="$2"
@@ -138,9 +145,9 @@ executar_busca() {
     echo "=========================================="
 }
 
-# Executa para cada argumento (que pode conter múltiplas palavras entre aspas)
+# Executa para cada argumento
 for arg in "$@"; do
     executar_busca "$arg"
 done
 
-echo "Todas as buscas foram concluídas!"
+echo "Todas as buscas foram concluídas. Resultados em '$PASTA_BASE/'"
