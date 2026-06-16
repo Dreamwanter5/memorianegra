@@ -3,6 +3,31 @@
 # Pasta base onde todos os resultados serão armazenados
 PASTA_BASE="Registros"
 
+STOPWORDS=(
+    a ante após até com contra de desde em entre para per por sem sob sobre trás
+    e que
+    da das do dos na nas no nos
+    ao aos à às
+    ele ela eles elas lhe lhes me te se nos vos
+    o a os as
+    um uma uns umas
+    este esta estes estas esse essa esses essas aquele aquela aqueles aquelas
+    isso isto aquilo
+    deu dá fez faz
+    muito pouco tudo nada sempre nunca também ainda já lá cá
+    mas mais porém pois
+)
+
+# Função que remove stopwords de uma string
+remover_stopwords() {
+    local frase="$1"
+    for sw in "${STOPWORDS[@]}"; do
+        # Remove a stopword quando aparece como palavra isolada (com espaços ao redor ou início/fim)
+        frase=$(echo "$frase" | sed -E "s/(^|[[:space:]])$sw($|[[:space:]])/\1\2/g" | sed -E 's/[[:space:]]+/ /g' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
+    done
+    echo "$frase"
+}
+
 if [ $# -eq 0 ]; then
     echo "Uso: $0 \"termo1\" \"termo2\" ..."
     echo "Exemplo: $0 \"preconceito racial\" \"arte negra\""
@@ -23,16 +48,18 @@ executar_busca() {
     echo "Pasta: $pasta_base"
     echo "=========================================="
 
-    # Busca no campo assunto (1=21) com palavras separadas
-    if [[ "$termos" =~ [[:space:]] ]]; then
-        # Termo composto: quebra em palavras e insere @and
+    # Remove stopwords do termo de busca
+    termos_limpos=$(remover_stopwords "$termos")
+    [ -z "$termos_limpos" ] && termos_limpos="$termos"
+
+    # Monta query para campo assunto (1=21)
+    if [[ "$termos_limpos" =~ [[:space:]] ]]; then
         QUERY="find @and"
-        for palavra in $termos; do
+        for palavra in $termos_limpos; do
             QUERY="$QUERY @attr 1=21 $palavra"
         done
     else
-        # Termo único
-        QUERY="find @attr 1=21 $termos"
+        QUERY="find @attr 1=21 $termos_limpos"
     fi
     echo "Query gerada: $QUERY"
 
