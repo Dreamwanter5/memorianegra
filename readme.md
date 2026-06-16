@@ -74,3 +74,4 @@ Todos os resultados são salvos dentro da pasta `Registros/` (criada automaticam
     done < termos.tx
     ```
 - Para depurar erros de busca, é muito útil fazer testes manuais dentro do `yaz-client` 
+- O código transforma frases como "Extinção da África" para "Extinção África" por conta de uma limitação do sistema de _stopwords_ do servidor original.
