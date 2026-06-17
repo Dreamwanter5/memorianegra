@@ -22,9 +22,9 @@ O script se resume a uma função principal (executar_busca). Para cada termo de
 4. Extrai os identifiers e salva cada XML individualmente.
 5. Para os formatos USmarc, SUTRS e OPAC, baixa cada registro separadamente (loop de 1 a $HITS), limpando os cabeçalhos e salvando com o mesmo nome base.
 
-## ==*IMPORTANTE*==
-- O script funciona de uma forma pontual no que diz respeito ao seu mecanismo de busca. Pegando um exemplo prático, pode ser que ao utilizar o comando: `find CANDOMBLÉ` dentro do _cliente yaz_ ele retorne 594 resultados. Porém no `.sh`, ao executar o comando `./download.sh CANDOMBLÉ` o resultado que será obtido seria de apenas 460. Isso porque o script faz uma filtragem baseando-se *apenas* se as palavras buscadas estão no campo *assunto*. Esse é o efeito de utilizar `@attr 1=21` na montagem da `query` (linha 22).
-Caso seja mais conveniente capturar mais resultados, a alteração ser feita é fazer uma substituição de `@attr 1=21` para `@attr 1=7`, ou apenas removendo o termo, deixando `$termo` sozinho. 
+## *IMPORTANTE*
+- O script funciona de uma forma pontual no que diz respeito ao seu mecanismo de busca. Pegando um exemplo prático, pode ser que ao utilizar o comando: `find CANDOMBLÉ` dentro do _cliente yaz_ ele retorne 594 resultados. Porém no `.sh`, ao executar o comando `./download.sh CANDOMBLÉ` o resultado que será obtido seria de apenas 460. Isso porque o script faz uma filtragem baseando-se *apenas* se as palavras buscadas estão no campo *assunto*. Esse é o efeito de utilizar `@attr 1=21` na montagem da `query` (iniciada na linha 55).
+Caso seja mais conveniente capturar mais resultados, a alteração a ser feita é fazer uma substituição de `@attr 1=21` para `@attr 1=7`, que busca em todos os campos. 
 
 ---
 
@@ -40,9 +40,7 @@ done < termos.txt
 
 ## Nuances de execução
 
-Termos que contêm espaços (ex: "JOGO DE BÚZIOS") devem ser escritos entre aspas no arquivo termos.txt. O script quebra a frase em palavras e monta uma query com @and entre cada palavra. Isso funciona bem para a maioria dos casos, mas pode encontrar problemas com stop words (palavras muito comuns como da, de, do, e, etc.). Por exemplo, buscando "Extinção da África", a palavra _da_ pode ser ignorada pelo servidor, reduzindo a precisão. Alterações possíveis são:
-    Remover manualmente as stop words da lista de termos, ou
-    Substituir a lógica de montagem da query por adjacência exata (@attr 4=1), mas isso exige que a frase apareça exatamente como está nos registros.
+Termos que contêm espaços (ex: "JOGO DE BÚZIOS") devem ser escritos entre aspas no arquivo termos.txt. O script quebra a frase em palavras e monta uma query com @and entre cada palavra. Isso funciona bem para a maioria dos casos, mas pode encontrar problemas com stop words (palavras muito comuns como da, de, do, e, etc.). Por exemplo, buscando "Extinção da África", a palavra _da_ pode ser ignorada pelo servidor, reduzindo a precisão.
 
 ## Critérios de personalização
 
