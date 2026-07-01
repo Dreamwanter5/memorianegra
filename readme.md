@@ -73,3 +73,82 @@ Todos os resultados são salvos dentro da pasta `Registros/` (criada automaticam
     ```
 - Para depurar erros de busca, é muito útil fazer testes manuais dentro do `yaz-client` 
 - O código transforma frases como "Extinção da África" para "Extinção África" por conta de uma limitação do sistema de _stopwords_ do servidor original.
+
+---
+
+# Transformando os registros em `.CSV`
+
+Além do download dos registros, disponibilizamos um script Python (extract_to_csv.py) que extrai informações estruturadas dos arquivos baixados e as organiza em uma planilha CSV. Esse script percorre as pastas de resultados, lê os arquivos .xml, .opac e .sutrs de cada registro, e gera um arquivo .csv com os campos mais relevantes para sua biblioteca temática.
+
+## Como usar
+
+O script pode ser executado de três formas principais:
+```
+# 1. Processar todas as pastas dentro de 'Registros/'
+python3 extract_to_csv.py Registros
+
+# 2. Processar apenas uma pasta específica (ex: Preconceito_Racial_resultados)
+python3 extract_to_csv.py Registros/Preconceito_Racial_resultados
+
+# 3. Filtrar por um identificador (ex: 00294) em todas as pastas
+python3 extract_to_csv.py Registros 00294
+```
+
+*Saída*
+Para cada pasta processada, o script cria uma subpasta chamada `saídas/` (dentro da própria pasta de resultados) e salva um arquivo CSV com o nome:
+
+- `resultados_<nome_da_pasta>.csv` (quando processa uma pasta inteira)
+- `saida_<identifier>.csv` (quando filtra por identificador)
+
+*Exemplo de estrutura:*
+```text
+Registros/
+├── Preconceito_Racial_resultados/
+│   ├── xml/
+│   ├── marc/
+│   ├── sutrs/
+│   ├── opac/
+│   └── saídas/
+│       └── saida_00294.csv
+├── outro_termo_resultados/
+│   └── saídas/
+│       └── resultados_outro_termo_resultados.csv
+└── ...
+```
+
+## Campos extraídos para o CSV
+
+Dentre os diferentes tipos de arquivo, era notável que cada um possuia alguns identificadores que eram únicos de seu formato, pensando nessa variedade de informações, o código escaneia os diferentes tipos de registros e coleta dados importantes para o registro:
+
+| Coluna | Fonte | Descrição |
+| :--- | :--- | :--- |
+| **identifier** | Nome do arquivo | Identificador único do registro (extraído do XML ou sequencial) |
+| **titulo** | XML (`<title>`) | Título completo do trabalho |
+| **autor** | XML (`<contributor>`) | Autor principal (com data e ORCID removidos) |
+| **co_autor** | XML (`<contributor>`) | Coautores (se houver mais de um contribuidor) |
+| **orientador** | XML (`<contributor>`) | Orientador (último contribuidor, quando há mais de um) |
+| **data** | XML (`<date>`) | Ano de publicação |
+| **paginas** | XML (`<format>`) | Extensão ou número de páginas |
+| **local_publicacao** | XML (`<coverage>`) | Local de publicação (ex: BRASIL) – extraído do XML |
+| **subjects** | XML (`<subject>`) | Assuntos/descritores, separados por `|` (pipe) |
+| **modelo_trabalho** | SUTRS (Tipo de material:) | Tipo de material traduzido (ex: "Tese", "Periódico / Parte de livro") |
+| **descricao** | XML (`<description>`) | Resumo/descrição do trabalho (fallback para SUTRS se ausente) |
+| **local_defesa** | SUTRS (Imprenta:) | Cidade de defesa/publicação (extraída do campo "Imprenta") |
+
+## Tratamento de informações
+
+- *Limpeza do autor:* Se houver elementos tipo datas ou outros sufixos desnescessários, o código faz a limpeza, deixando apenas o nome.
+
+- *Mapeamento de tipo:* códigos como T, D, P são convertidos para descrições legíveis (ex: T → Tese, P → Periódico / Parte de livro).
+
+- *Decodificação de caracteres:* sequências como S\XC3\XA3o Paulo são automaticamente convertidas para São Paulo durante a extração.
+
+- *Normalização Unicode:* todos os textos são normalizados para a forma NFC, garantindo consistência nos acentos.
+
+- *Fallback de descrição:* se o XML não tiver <description>, o script busca Nota de resumo: no arquivo SUTRS.
+
+## Exemplo de saída
+
+| identifier | titulo | autor | co_autor | orientador | data | paginas | local_publicacao | subjects | modelo_trabalho | descricao | local_defesa |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 00294 | Oriente-se marcas da assimilação asiática no Brasil... | Nakamura, Aline Watanabe |  | Ambra, Pedro | 2023 | 142 p | BRASIL | PRECONCEITO RACIAL\|ORIENTALISMO\|... | Tese | A presente pesquisa... | São Paulo |
